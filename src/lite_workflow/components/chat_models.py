@@ -7,251 +7,187 @@ and OpenAI-compatible chat models.
 
 from __future__ import annotations
 
-import os
 from abc import ABC, abstractmethod
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional, Union
 from dataclasses import dataclass
+from typing import Any, AsyncIterator, Iterator
 
 import openai
-from openai import AsyncOpenAI, OpenAI
 
-from ..definitions.message import Message, ChatResult
+from ..definitions.message import ChatResult, Message
 
 
 class BaseChatModel(ABC):
-    """Abstract base class for chat models."""
-    
+    """Abstract base class for all chat models."""
+
     @abstractmethod
-    def invoke(
-        self,
-        messages: Union[str, List[Message]],
-        **kwargs: Any
-    ) -> ChatResult:
+    def invoke(self, messages: str | list[Message], **kwargs: Any) -> ChatResult:
         """Generate a single response synchronously."""
         pass
-    
+
     @abstractmethod
     def stream(
-        self,
-        messages: Union[str, List[Message]],
-        **kwargs: Any
+        self, messages: str | list[Message], **kwargs: Any
     ) -> Iterator[ChatResult]:
         """Stream responses synchronously."""
         pass
-    
+
     @abstractmethod
     async def ainvoke(
-        self,
-        messages: Union[str, List[Message]],
-        **kwargs: Any
+        self, messages: str | list[Message], **kwargs: Any
     ) -> ChatResult:
         """Generate a single response asynchronously."""
         pass
-    
+
     @abstractmethod
     async def astream(
-        self,
-        messages: Union[str, List[Message]],
-        **kwargs: Any
+        self, messages: str | list[Message], **kwargs: Any
     ) -> AsyncIterator[ChatResult]:
         """Stream responses asynchronously."""
         pass
-    
-    def bind(self, **kwargs: Any) -> "RunnableBinding":
-        """Bind default parameters to the model."""
-        return RunnableBinding(model=self, kwargs=kwargs)
 
 
 @dataclass
-class RunnableBinding:
-    """Allows binding default parameters to a model."""
+class SimpleChatModel(BaseChatModel):
+    """A simple chat model that wraps another chat model and provides basic routing."""
+
     model: BaseChatModel
-    kwargs: Dict[str, Any]
-    
-    def invoke(self, messages: Union[str, List[Message]], **kwargs: Any) -> ChatResult:
+    kwargs: dict[str, Any]
+
+    def invoke(self, messages: str | list[Message], **kwargs: Any) -> ChatResult:
+        """Generate a single response."""
         merged_kwargs = {**self.kwargs, **kwargs}
         return self.model.invoke(messages, **merged_kwargs)
-    
-    def stream(self, messages: Union[str, List[Message]], **kwargs: Any) -> Iterator[ChatResult]:
+
+    def stream(
+        self, messages: str | list[Message], **kwargs: Any
+    ) -> Iterator[ChatResult]:
+        """Stream responses."""
         merged_kwargs = {**self.kwargs, **kwargs}
         return self.model.stream(messages, **merged_kwargs)
-    
-    async def ainvoke(self, messages: Union[str, List[Message]], **kwargs: Any) -> ChatResult:
+
+    async def ainvoke(
+        self, messages: str | list[Message], **kwargs: Any
+    ) -> ChatResult:
+        """Async generate a single response."""
         merged_kwargs = {**self.kwargs, **kwargs}
         return await self.model.ainvoke(messages, **merged_kwargs)
-    
-    async def astream(self, messages: Union[str, List[Message]], **kwargs: Any) -> AsyncIterator[ChatResult]:
+
+    async def astream(
+        self, messages: str | list[Message], **kwargs: Any
+    ) -> AsyncIterator[ChatResult]:
+        """Async stream responses."""
         merged_kwargs = {**self.kwargs, **kwargs}
-        async for chunk in self.model.astream(messages, **merged_kwargs):
-            yield chunk
+        return self.model.astream(messages, **merged_kwargs)
 
 
 class OpenAIChatModel(BaseChatModel):
-    """Modern OpenAI chat model with elegant interface."""
-    
+    """OpenAI chat model implementation."""
+
     def __init__(
         self,
         model: str = "gpt-3.5-turbo",
-        api_key: Optional[str] = None,
-        base_url: Optional[str] = None,
+        api_key: str | None = None,
+        base_url: str | None = None,
         temperature: float = 0.7,
-        max_tokens: Optional[int] = None,
-        **kwargs: Any
+        max_tokens: int | None = None,
+        **kwargs: Any,
     ):
+        self.client = openai.OpenAI(
+            api_key=api_key,
+            base_url=base_url,
+            **kwargs,
+        )
         self.model = model
-        self.default_params = {
-            "temperature": temperature,
-            "max_tokens": max_tokens,
-            **kwargs
-        }
-        
-        # Resolve API credentials
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError(
-                "OpenAI API key not found. Set OPENAI_API_KEY environment variable or pass api_key parameter."
-            )
-        
-        self.base_url = base_url or os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
-        
-        # Initialize clients
-        self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
-        self.async_client = AsyncOpenAI(api_key=self.api_key, base_url=self.base_url)
-    
-    def _prepare_messages(self, messages: Union[str, List[Message]]) -> List[Dict[str, Any]]:
+        self.temperature = temperature
+        self.max_tokens = max_tokens
+
+    def _prepare_messages(
+        self, messages: str | list[Message]
+    ) -> list[dict[str, Any]]:
         """Convert various input formats to OpenAI format."""
         if isinstance(messages, str):
-            return [Message.user(messages).to_dict()]
-        
+            return [{"role": "user", "content": messages}]
         return [msg.to_dict() for msg in messages]
-    
-    def _create_params(self, messages: List[Dict[str, Any]], **kwargs: Any) -> Dict[str, Any]:
+
+    def _create_params(
+        self, messages: list[dict[str, Any]], **kwargs: Any
+    ) -> dict[str, Any]:
         """Create parameters for API call."""
         params = {
             "model": self.model,
             "messages": messages,
-            **self.default_params,
-            **kwargs
+            "temperature": self.temperature,
+            "stream": False,
         }
-        return {k: v for k, v in params.items() if v is not None}
-    
-    def _parse_response(self, response: Any) -> ChatResult:
-        """Parse OpenAI response into ChatResult."""
-        choice = response.choices[0]
-        message = choice.message
-        
-        return ChatResult(
-            message=Message(
-                role=message.role,
-                content=message.content or "",
-                tool_calls=[tool.model_dump() for tool in (message.tool_calls or [])]
-            ),
-            usage=response.usage.model_dump() if response.usage else {},
-            model=response.model,
-            finish_reason=choice.finish_reason or "stop",
-            response_id=response.id
-        )
-    
+        if self.max_tokens is not None:
+            params["max_tokens"] = self.max_tokens
+        params.update(kwargs)
+        return params
+
     def invoke(
-        self,
-        messages: Union[str, List[Message]],
-        **kwargs: Any
+        self, messages: str | list[Message], **kwargs: Any
     ) -> ChatResult:
         """Generate a single response."""
         openai_messages = self._prepare_messages(messages)
         params = self._create_params(openai_messages, **kwargs)
-        
-        try:
-            response = self.client.chat.completions.create(**params)
-            return self._parse_response(response)
-        except Exception as e:
-            raise RuntimeError(f"OpenAI API call failed: {str(e)}") from e
-    
+        response = self.client.chat.completions.create(**params)
+        msg_content = response.choices[0].message.content or ""
+        return ChatResult(
+            message=Message.assistant(msg_content),
+            usage=response.usage.model_dump(),
+            model=response.model,
+            finish_reason=response.choices[0].finish_reason,
+            response_id=response.id,
+        )
+
     def stream(
-        self,
-        messages: Union[str, List[Message]],
-        **kwargs: Any
+        self, messages: str | list[Message], **kwargs: Any
     ) -> Iterator[ChatResult]:
         """Stream responses."""
         openai_messages = self._prepare_messages(messages)
         params = self._create_params(openai_messages, **kwargs)
         params["stream"] = True
-        
-        try:
-            stream = self.client.chat.completions.create(**params)
-            
-            for chunk in stream:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    yield ChatResult(
-                        message=Message(
-                            role="assistant",
-                            content=chunk.choices[0].delta.content
-                        ),
-                        usage=chunk.usage.model_dump() if chunk.usage else {},
-                        model=chunk.model,
-                        finish_reason=chunk.choices[0].finish_reason or "",
-                        response_id=chunk.id
-                    )
-        except Exception as e:
-            raise RuntimeError(f"OpenAI streaming failed: {str(e)}") from e
-    
+
+        for chunk in self.client.chat.completions.create(**params):
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield ChatResult(
+                    message=Message.assistant(chunk.choices[0].delta.content),
+                    usage={},
+                    model=chunk.model,
+                    finish_reason=chunk.choices[0].finish_reason,
+                    response_id=chunk.id,
+                )
+
     async def ainvoke(
-        self,
-        messages: Union[str, List[Message]],
-        **kwargs: Any
+        self, messages: str | list[Message], **kwargs: Any
     ) -> ChatResult:
         """Async generate a single response."""
         openai_messages = self._prepare_messages(messages)
         params = self._create_params(openai_messages, **kwargs)
-        
-        try:
-            response = await self.async_client.chat.completions.create(**params)
-            return self._parse_response(response)
-        except Exception as e:
-            raise RuntimeError(f"Async OpenAI API call failed: {str(e)}") from e
-    
+        response = await self.client.chat.completions.create(**params)
+        msg_content = response.choices[0].message.content or ""
+        return ChatResult(
+            message=Message.assistant(msg_content),
+            usage=response.usage.model_dump(),
+            model=response.model,
+            finish_reason=response.choices[0].finish_reason,
+            response_id=response.id,
+        )
+
     async def astream(
-        self,
-        messages: Union[str, List[Message]],
-        **kwargs: Any
+        self, messages: str | list[Message], **kwargs: Any
     ) -> AsyncIterator[ChatResult]:
         """Async stream responses."""
         openai_messages = self._prepare_messages(messages)
         params = self._create_params(openai_messages, **kwargs)
         params["stream"] = True
-        
-        try:
-            stream = await self.async_client.chat.completions.create(**params)
-            
-            async for chunk in stream:
-                if chunk.choices and chunk.choices[0].delta.content:
-                    yield ChatResult(
-                        message=Message(
-                            role="assistant",
-                            content=chunk.choices[0].delta.content
-                        ),
-                        usage=chunk.usage.model_dump() if chunk.usage else {},
-                        model=chunk.model,
-                        finish_reason=chunk.choices[0].finish_reason or "",
-                        response_id=chunk.id
-                    )
-        except Exception as e:
-            raise RuntimeError(f"Async OpenAI streaming failed: {str(e)}") from e
-    
-    def __repr__(self) -> str:
-        return f"OpenAIChatModel(model='{self.model}', base_url='{self.base_url}')"
 
-
-# Convenience factory functions
-def ChatOpenAI(**kwargs: Any) -> OpenAIChatModel:
-    """Factory function for creating OpenAI chat models."""
-    return OpenAIChatModel(**kwargs)
-
-
-def ChatSiliconFlow(model: str = "Qwen/Qwen3-8B", **kwargs: Any) -> OpenAIChatModel:
-    """Factory for SiliconFlow OpenAI-compatible API."""
-    return OpenAIChatModel(
-        model=model,
-        base_url="https://api.siliconflow.cn/v1",
-        **kwargs
-    )
+        async for chunk in await self.client.chat.completions.create(**params):
+            if chunk.choices and chunk.choices[0].delta.content:
+                yield ChatResult(
+                    message=Message.assistant(chunk.choices[0].delta.content),
+                    usage={},
+                    model=chunk.model,
+                    finish_reason=chunk.choices[0].finish_reason,
+                    response_id=chunk.id,
+                )
