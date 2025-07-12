@@ -14,7 +14,6 @@ Lite Workflow 是一个现代化的工作流编排系统，灵感来源于 Googl
 
 - **🎯 图编排**: 基于节点-边的优雅图结构
 - **⚡ Pregel 风格**: 超步计算与消息传递
-- **🇨🇳 中文优先**: 原生中文 API 和文档
 - **🔄 并行执行**: 支持扇入/扇出和条件边
 - **🔁 循环支持**: 迭代改进与质量门控
 - **📊 现代 Python**: 类型安全、异步支持
@@ -46,30 +45,6 @@ workflow.chain("处理器A", "处理器B", "处理器C")
 result = workflow.run()
 
 print(f"结果: {result.final_state}")
-```
-
-### 中文工作流示例
-
-```python
-from lite_workflow import Workflow
-from lite_workflow.components.function_nodes import node
-
-@node("数据处理器")
-def 处理数据(inputs: dict) -> dict:
-    return {"处理结果": inputs["prompt"].upper()}
-
-@node("AI生成器")
-def 生成内容(inputs: dict) -> dict:
-    from lite_workflow.components.chat_models import ChatOpenAI
-    model = ChatOpenAI(model="gpt-3.5-turbo")
-    result = model.invoke(inputs["处理结果"])
-    return {"内容": result.content}
-
-# 构建中文工作流
-workflow = Workflow("中文AI工作流", {"prompt": "什么是深度学习？"})
-workflow.chain("数据处理器", "AI生成器")
-result = workflow.run()
-print(result.final_state["内容"])
 ```
 
 ## 🏗️ 架构设计
@@ -167,16 +142,6 @@ engine = PregelEngine(graph, {"value": 10})
 result = engine.execute()
 ```
 
-### 中文演示
-
-```bash
-# 运行中文演示
-python demo_chinese.py
-
-# 运行独立演示
-python demo_standalone.py
-```
-
 ## 🎯 高级特性
 
 ### 1. 条件边
@@ -220,63 +185,6 @@ mypy src/
 # 代码检查
 ruff check src/
 ```
-
-### 测试运行
-```bash
-# 运行所有测试
-pytest tests/
-
-# 运行特定测试
-pytest tests/test_engine.py -v
-```
-
-## 📚 示例和教程
-
-### 目录结构
-- `demo_chinese.py`: 中文工作流演示
-- `demo_standalone.py`: 独立图编排演示
-- `examples/`: 使用示例和最佳实践
-
-### 学习路径
-1. **新手**: 从 `demo_chinese.py` 开始
-2. **进阶**: 使用 `Workflow` 类构建复杂流程
-3. **专家**: 直接操作 `PregelEngine` 进行低级控制
-
-## 🔧 集成示例
-
-### OpenAI 集成
-```python
-from lite_workflow.components import ChatOpenAI, ChatSiliconFlow
-
-# 使用 OpenAI
-model = ChatOpenAI(model="gpt-4")
-
-# 使用 SiliconFlow（中文模型）
-siliconflow = ChatSiliconFlow(model="Qwen/Qwen3-8B")
-```
-
-### 自定义节点
-```python
-from lite_workflow.components.function_nodes import node
-
-@node("我的处理器")
-def 自定义处理(inputs: dict) -> dict:
-    return {"处理结果": inputs["数据"] * 2}
-```
-
-## 📊 性能特点
-
-- **并行执行**: 自动并行处理独立节点
-- **状态优化**: 增量更新，避免全状态复制
-- **错误恢复**: 节点级错误处理和重试
-- **内存高效**: 智能状态合并策略
-
-## 🤝 贡献指南
-
-我们欢迎贡献！请查看：
-- [贡献指南](CONTRIBUTING.md)
-- [开发文档](docs/development.md)
-- [API文档](docs/api.md)
 
 ## 📄 许可证
 
