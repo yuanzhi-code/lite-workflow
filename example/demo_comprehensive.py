@@ -266,9 +266,36 @@ def run_comprehensive_demo():
 
     print("\n📈 执行统计:")
     stats = engine.get_execution_stats()
-    for key, value in stats.items():
-        if key != "node_execution_times":
-            print(f"   {key}: {value}")
+    
+    # 格式化时间显示
+    def format_duration(seconds):
+        if seconds < 1:
+            return f"{seconds*1000:.1f}ms"
+        elif seconds < 60:
+            return f"{seconds:.2f}s"
+        else:
+            minutes = int(seconds // 60)
+            remaining_seconds = seconds % 60
+            return f"{minutes}分{remaining_seconds:.1f}秒"
+    
+    def format_timestamp(timestamp):
+        from datetime import datetime
+        return datetime.fromtimestamp(timestamp).strftime("%H:%M:%S")
+    
+    # 显示友好的统计信息
+    print(f"   ⏱️  总耗时: {format_duration(stats.get('total_duration', 0))}")
+    print(f"   🕐  开始时间: {format_timestamp(stats.get('start_time', 0))}")
+    print(f"   🕐  结束时间: {format_timestamp(stats.get('end_time', 0))}")
+    print(f"   🔄  超步数量: {stats.get('total_supersteps', 0)}")
+    print(f"   ⚙️  执行节点: {stats.get('total_nodes_executed', 0)}")
+    print(f"   📨  消息传递: {stats.get('messages_sent', 0)}")
+    
+    # 显示节点执行时间详情
+    node_times = stats.get('node_execution_times', {})
+    if node_times:
+        print(f"   ⏱️  节点耗时详情:")
+        for node_id, duration in node_times.items():
+            print(f"      • {node_id}: {format_duration(duration)}")
 
     return {
         "success": True,

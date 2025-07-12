@@ -241,6 +241,8 @@ class PregelEngine(ExecutionEngine):
             self._execution_stats["node_execution_times"][node_id] = duration
             self._execution_stats["total_nodes_executed"] += 1
 
+            return outputs
+
         except Exception as e:
             raise RuntimeError(f"Node {node_id} execution failed: {e}") from e
 

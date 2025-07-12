@@ -164,7 +164,9 @@ class OpenAIChatModel(BaseChatModel):
         """Async generate a single response."""
         openai_messages = self._prepare_messages(messages)
         params = self._create_params(openai_messages, **kwargs)
-        response = await self.client.chat.completions.create(**params)
+        # Use asyncio.to_thread to run the synchronous API call in a thread
+        import asyncio
+        response = await asyncio.to_thread(self.client.chat.completions.create, **params)
         msg_content = response.choices[0].message.content or ""
         return ChatResult(
             message=Message.assistant(msg_content),
@@ -182,7 +184,11 @@ class OpenAIChatModel(BaseChatModel):
         params = self._create_params(openai_messages, **kwargs)
         params["stream"] = True
 
-        async for chunk in await self.client.chat.completions.create(**params):
+        # Use asyncio.to_thread to run the synchronous streaming API call in a thread
+        import asyncio
+        response = await asyncio.to_thread(self.client.chat.completions.create, **params)
+        
+        for chunk in response:
             if chunk.choices and chunk.choices[0].delta.content:
                 yield ChatResult(
                     message=Message.assistant(chunk.choices[0].delta.content),
@@ -191,3 +197,17 @@ class OpenAIChatModel(BaseChatModel):
                     finish_reason=chunk.choices[0].finish_reason,
                     response_id=chunk.id,
                 )
+
+# Convenience factory functions
+def ChatOpenAI(**kwargs: Any) -> OpenAIChatModel:
+    """Factory function for creating OpenAI chat models."""
+    return OpenAIChatModel(**kwargs)
+
+
+def ChatSiliconFlow(model: str = "Qwen/Qwen3-8B", **kwargs: Any) -> OpenAIChatModel:
+    """Factory for SiliconFlow OpenAI-compatible API."""
+    return OpenAIChatModel(
+        model=model,
+        base_url="https://api.siliconflow.cn/v1",
+        **kwargs
+    )
