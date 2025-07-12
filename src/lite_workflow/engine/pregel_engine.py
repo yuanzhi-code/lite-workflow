@@ -157,6 +157,8 @@ class PregelEngine(ExecutionEngine):
         """Execute a single superstep asynchronously."""
         active_nodes = [node_id for node_id, msgs in messages.items() if msgs]
         
+        print(f"⚙️ 超步 {superstep}: 活跃节点 {active_nodes}")
+
         self.event_bus.emit(SuperStepEvent(
             superstep=superstep,
             active_nodes=active_nodes,
@@ -238,7 +240,7 @@ class PregelEngine(ExecutionEngine):
         start_time = time.time()
         
         try:
-            outputs = node.execute(full_context)
+            outputs = await node.execute_async(full_context)
             
             # Update global state
             self.state_manager.update(outputs, source=f"node_{node_id}")

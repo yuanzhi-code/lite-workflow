@@ -33,7 +33,7 @@ from lite_workflow.engine.pregel_engine import PregelEngine
 def initial_processor(inputs: dict) -> dict:
     """Process initial input and prepare for fan-out."""
     prompt = inputs.get("prompt", "Explain machine learning to a 10-year-old")
-    print(f"📝 [START] Processing: {prompt}")
+    print(f"📝 [开始] 处理: {prompt}")
     return {
         "original_prompt": prompt,
         "processed_prompt": prompt.strip(),
@@ -44,9 +44,9 @@ def initial_processor(inputs: dict) -> dict:
 def parallel_processor_a(inputs: dict) -> dict:
     """First parallel processing branch."""
     prompt = inputs.get("processed_prompt", "")
-    print(f"🔍 [FAN-OUT A] Processing branch A")
+    print(f"🔍 [分支 A] 处理分支 A")
     return {
-        "branch_a": f"Branch A analysis: {prompt[:50]}...",
+        "branch_a": f"分支 A 分析: {prompt[:50]}...",
         "complexity_score": len(prompt) // 10
     }
 
@@ -54,9 +54,9 @@ def parallel_processor_a(inputs: dict) -> dict:
 def parallel_processor_b(inputs: dict) -> dict:
     """Second parallel processing branch."""
     prompt = inputs.get("processed_prompt", "")
-    print(f"🎨 [FAN-OUT B] Processing branch B")
+    print(f"🎨 [分支 B] 处理分支 B")
     return {
-        "branch_b": f"Branch B creative: {prompt[:50]}...",
+        "branch_b": f"分支 B 创意: {prompt[:50]}...",
         "creativity_score": len(prompt) // 5
     }
 
@@ -64,16 +64,16 @@ def parallel_processor_b(inputs: dict) -> dict:
 def parallel_processor_c(inputs: dict) -> dict:
     """Third parallel processing branch."""
     prompt = inputs.get("processed_prompt", "")
-    print(f"⚡ [FAN-OUT C] Processing branch C")
+    print(f"⚡ [分支 C] 处理分支 C")
     return {
-        "branch_c": f"Branch C technical: {prompt[:50]}...",
+        "branch_c": f"分支 C 技术: {prompt[:50]}...",
         "technical_score": len(prompt) // 8
     }
 
 
 def fan_in_aggregator(inputs: dict) -> dict:
     """Aggregate results from all parallel branches."""
-    print(f"🎯 [FAN-IN] Aggregating parallel results")
+    print(f"🎯 [聚合] 聚合并行结果")
     
     # Collect all branch results
     branches = {}
@@ -94,7 +94,7 @@ def fan_in_aggregator(inputs: dict) -> dict:
         "quality_threshold": 50
     }
     
-    print(f"   Aggregated {len(branches)} branches with total score: {aggregated['total_score']}")
+    print(f"   已聚合 {len(branches)} 个分支，总分: {aggregated['total_score']}")
     return aggregated
 
 
@@ -107,7 +107,7 @@ def quality_gate(inputs: dict) -> dict:
     meets_quality = total_score >= threshold
     should_continue = iteration < 3 and not meets_quality  # Max 3 iterations
     
-    print(f"⚖️ [QUALITY GATE] Score: {total_score}/{threshold}, Continue: {should_continue}")
+    print(f"⚖️ [质量门] 得分: {total_score}/{threshold}, 继续: {should_continue}")
     
     return {
         "meets_quality": meets_quality,
@@ -122,7 +122,7 @@ def improvement_engine(inputs: dict) -> dict:
     iteration = inputs.get("iteration", 0)
     branches = inputs.get("branches", {})
     
-    print(f"🔧 [IMPROVEMENT] Enhancing quality (iteration {iteration + 1})")
+    print(f"🔧 [改进] 提升质量 (迭代 {iteration + 1})")
     
     # Simulate improvement by increasing scores
     improved = {
@@ -146,7 +146,7 @@ def final_renderer(inputs: dict) -> dict:
     total_score = inputs.get("total_score", 0)
     iteration = inputs.get("iteration", 0)
     
-    print(f"🎉 [FINAL] Rendering completed content")
+    print(f"🎉 [完成] 渲染完成内容")
     
     final_content = {
         "final_output": {
@@ -213,17 +213,17 @@ def create_comprehensive_graph() -> Graph:
 
 def run_comprehensive_demo():
     """Run the comprehensive demo."""
-    print("🎯 Comprehensive Graph Demo - All Patterns")
+    print("🎯 综合图演示 - 所有模式")
     print("=" * 60)
     
     # Build the graph
     graph = create_comprehensive_graph()
-    print(f"📊 Graph built: {len(graph)} nodes, {len(graph.edges)} edges")
-    print(f"   Start node: {graph.start_node}")
-    print(f"   Terminal nodes: {[n for n in graph.nodes if graph.is_terminal(n)]}")
+    print(f"📊 图已构建: {len(graph)} 节点, {len(graph.edges)} 边")
+    print(f"   起始节点: {graph.start_node}")
+    print(f"   终止节点: {[n for n in graph.nodes if graph.is_terminal(n)]}")
     
     # Validate graph
-    print(f"✅ Graph validation: {graph.validate_cycles()}")
+    print(f"✅ 图验证: {graph.validate_cycles()}")
     
     # Set up execution
     initial_state = {"prompt": "Explain how neural networks learn from data"}
@@ -232,8 +232,8 @@ def run_comprehensive_demo():
     
     engine = PregelEngine(graph, state_manager, error_handler)
     
-    print(f"\n🔄 Starting execution...")
-    print(f"Initial state: {initial_state}")
+    print(f"\n🔄 开始执行...")
+    print(f"初始状态: {initial_state}")
     
     # Execute
     start_time = time.time()
@@ -241,22 +241,22 @@ def run_comprehensive_demo():
     execution_time = time.time() - start_time
     
     # Results
-    print(f"\n🎉 Execution Complete!")
-    print(f"Total time: {execution_time:.2f}s")
+    print(f"\n🎉 执行完成!")
+    print(f"总耗时: {execution_time:.2f}s")
     
     # Display results
     final_data = final_state.to_dict()
     
-    print(f"\n📋 Final Results:")
+    print(f"\n📋 最终结果:")
     final_output = final_data.get("final_output", {})
     
     if final_output:
-        print(f"   ✨ Final Content: {final_output.get('summary', 'N/A')}")
-        print(f"   🔄 Iterations: {final_output.get('iterations_needed', 0)}")
-        print(f"   🎯 Final Score: {final_output.get('final_score', 0)}")
-        print(f"   📊 Branches: {final_output.get('branches_processed', 0)}")
+        print(f"   ✨ 最终内容: {final_output.get('summary', 'N/A')}")
+        print(f"   🔄 迭代次数: {final_output.get('iterations_needed', 0)}")
+        print(f"   🎯 最终得分: {final_output.get('final_score', 0)}")
+        print(f"   📊 分支数量: {final_output.get('branches_processed', 0)}")
     
-    print(f"\n📈 Execution Statistics:")
+    print(f"\n📈 执行统计:")
     stats = engine.get_execution_stats()
     for key, value in stats.items():
         if key != "node_execution_times":
@@ -272,7 +272,7 @@ def run_comprehensive_demo():
 
 async def run_async_demo():
     """Run async version of the demo."""
-    print("\n⚡ Async Comprehensive Demo")
+    print("\n⚡ 异步综合演示")
     print("=" * 60)
     
     # Create a simpler async graph for demonstration
@@ -297,11 +297,11 @@ async def run_async_demo():
     
     engine = PregelEngine(graph, state_manager, error_handler)
     
-    print("🔄 Running async execution...")
+    print("🔄 正在运行异步执行...")
     final_state = await engine.execute_async()
     
-    print(f"✅ Async Complete!")
-    print(f"Result: {final_state.to_dict()}")
+    print(f"✅ 异步执行完成!")
+    print(f"结果: {final_state.to_dict()}")
     
     return final_state
 

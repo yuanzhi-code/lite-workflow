@@ -3,42 +3,22 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
-This is a lightweight workflow management system inspired by Google Pregel, designed for orchestrating complex LLM applications using graph-based execution. The system supports fan-out/fan-in patterns, conditional edges, loops, and incremental state management.
+Lite Workflow is a modern Chinese-friendly workflow management system inspired by Google Pregel, designed for orchestrating complex AI workflows with elegant graph-based execution patterns.
 
 ## Architecture
-- **Graph-based**: Uses Node-Edge abstraction where nodes are computation units and edges define data/control flow
-- **Pregel-style**: Incremental state updates via message passing between supersteps
-- **Modular**: Clean separation between definitions, execution, and components
+- **Graph-based**: Clean Node-Edge abstraction with Chinese naming support
+- **Pregel-style**: Superstep computation with message passing
+- **Modern Python**: Dataclasses, async/await, full type hints
+- **Chinese First**: Native Chinese APIs and documentation
 
-## Key Components
+## Quick Start
 
-### Core Structure
-- `definitions/`: Data structures and interfaces
-  - `graph.py`: Node, Edge, Graph classes
-  - `state.py`: State management and IncrementalUpdate
-  - `chat_models.py`: BaseChatModel and Message abstractions
-- `engine/`: Execution logic
-  - `execution_engine.py`: Pregel-style superstep execution
-- `core/`: Supporting systems
-  - `state_manager.py`: Global state coordination
-  - `error_handler.py`: Node-level error handling
-- `components/`: Concrete implementations
-  - `openai_chat_model.py`: OpenAI-compatible chat model integration
-
-### Execution Model
-1. **Superstep-based**: Each iteration processes all active nodes
-2. **Message passing**: Nodes receive inputs via messages, return incremental updates
-3. **State merging**: Automatic conflict resolution for parallel updates
-4. **Conditional edges**: Dynamic routing based on node outputs
-
-## Development Commands
-
-### Setup
+### Environment Setup
 ```bash
-# Install uv if not available
+# Install UV
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Create virtual environment
+# Create and activate environment
 uv venv
 source .venv/bin/activate
 
@@ -46,33 +26,101 @@ source .venv/bin/activate
 uv pip install -e .
 ```
 
-### Running
+### Running Demos
 ```bash
-# Execute main workflow
-python main.py
+# Run comprehensive demo
+python demo_chinese.py
 
-# The main.py demonstrates:
-# - Graph construction with fan-out/fan-in/loops
-# - LLM integration via OpenAIChatModel
-# - Conditional edge routing
-# - Iterative processing
+# Run standalone demo
+python demo_standalone.py
+
+# Run CLI
+python -m lite_workflow --demo
 ```
 
-### Key Files for Development
-- `main.py`: Complete workflow example and integration test
-- `execution_engine.py`: Core execution logic (superstep algorithm)
-- `graph.py`: Node execution and edge traversal
-- `state_manager.py`: State update and conflict resolution
+## Core Structure
 
-### Development Patterns
-- **Node creation**: Extend Node class with custom `function_ref` in config
-- **LLM integration**: Use OpenAIChatModel or implement BaseChatModel
-- **State updates**: Return dict from node functions for incremental updates
-- **Conditional logic**: Use Edge.condition with output.key or state.key expressions
-- **Error handling**: Register callbacks via ErrorHandler for node-specific handling
+### Package Layout
+```
+src/lite_workflow/
+├── definitions/    # Core types (Node, Edge, Graph)
+├── core/          # Infrastructure (State, Error, Events)
+├── engine/        # Execution engines
+├── components/    # LLM integrations
+├── cli.py         # Command line interface
+└── main.py        # Entry point
+```
 
-### Current Limitations
-- Sequential node execution (parallel execution TODO)
-- Simple string-based condition evaluation (unsafe for production)
-- No persistence or recovery mechanisms
-- Basic error handling without retry logic
+### Key Components
+
+#### **Workflow Builder** (High-level API)
+```python
+from lite_workflow import Workflow
+
+workflow = Workflow("中文工作流", {"prompt": "解释AI"})
+workflow.chain("处理器A", "处理器B", "处理器C")
+result = workflow.run()
+```
+
+#### **Graph API** (Low-level API)
+```python
+from lite_workflow.definitions import Node, Edge, Graph
+from lite_workflow.engine import PregelEngine
+
+# Build graph programmatically
+graph = Graph("my_graph", nodes, edges, "start_node")
+engine = PregelEngine(graph, state_manager, error_handler)
+result = engine.execute()
+```
+
+## Development Commands
+
+### Setup & Development
+```bash
+# Install in development mode
+uv pip install -e .
+
+# Install development dependencies  
+uv pip install -e .[dev]
+
+# Run tests
+pytest tests/
+
+# Format code
+black src/
+ruff check src/
+
+# Type checking
+mypy src/
+```
+
+### Configuration Files
+- `pyproject.toml`: Modern Python packaging
+- `requirements.txt`: Generated from pyproject.toml
+- No legacy setup.py or requirements.in files
+
+## Key Features
+
+### 1. Modern Design Patterns
+- **Fluent interfaces**: `model.bind(temperature=0.9)`
+- **Factory functions**: `ChatOpenAI()`, `ChatSiliconFlow()`
+- **Type safety**: Full mypy compliance
+- **Async support**: Complete async/await throughout
+
+### 2. Chinese-First Design
+- Native Chinese APIs and documentation
+- Clear Chinese logging messages
+- Cultural appropriate terminology
+- Extensive Chinese examples
+
+### 3. Demo Files
+- `demo_chinese.py`: Full Chinese workflow demo
+- `demo_standalone.py`: Self-contained demo
+- `examples/`: Usage examples and patterns
+
+## Architecture Quality
+- **Clean Architecture**: Separation of concerns
+- **Type Safety**: Full type hints and mypy compliance
+- **Scalability**: Easy extension with new components
+- **Testability**: Modular design for easy testing
+- **Performance**: Optimized for both sync and async
