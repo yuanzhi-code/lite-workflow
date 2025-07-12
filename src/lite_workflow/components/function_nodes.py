@@ -11,54 +11,55 @@ import time
 from typing import Any, Callable, Dict, Optional
 from functools import wraps
 
-from ..definitions.node import Node, AsyncNode, create_function_node
+from ..definitions.node import Node, create_function_node # Force reload
 
 
-def create_node(
-    node_id: str,
-    func: Callable[..., Any],
-    is_async: bool = False,
-    **kwargs: Any
-) -> Node:
-    """Create a node from any Python function."""
+# Removed create_node as create_function_node now handles both sync/async
+# def create_node(
+#     node_id: str,
+#     func: Callable[..., Any],
+#     is_async: bool = False,
+#     **kwargs: Any
+# ) -> Node:
+#     """Create a node from any Python function."""
     
-    def node_executor(inputs: Dict[str, Any], **context: Any) -> Dict[str, Any]:
-        """Wrapper to handle function execution."""
-        try:
-            result = func(inputs, **context)
+#     def node_executor(inputs: Dict[str, Any], **context: Any) -> Dict[str, Any]:
+#         """Wrapper to handle function execution."""
+#         try:
+#             result = func(inputs, **context)
             
-            # Handle both sync and async results
-            if asyncio.iscoroutine(result):
-                raise ValueError(
-                    f"Async function {func.__name__} must be used with AsyncNode"
-                )
+#             # Handle both sync and async results
+#             if asyncio.iscoroutine(result):
+#                 raise ValueError(
+#                     f"Async function {func.__name__} must be used with AsyncNode"
+#                 )
             
-            # Ensure result is a dictionary
-            if not isinstance(result, dict):
-                result = {"output": result}
+#             # Ensure result is a dictionary
+#             if not isinstance(result, dict):
+#                 result = {"output": result}
             
-            return result
+#             return result
             
-        except Exception as e:
-            raise RuntimeError(f"Function node {node_id} failed: {e}")
+#         except Exception as e:
+#             raise RuntimeError(f"Function node {node_id} failed: {e}")
     
-    def async_node_executor(inputs: Dict[str, Any], **context: Any) -> Dict[str, Any]:
-        """Async wrapper for async functions."""
-        # This will be handled by AsyncNode
-        return func(inputs, **context)
+#     def async_node_executor(inputs: Dict[str, Any], **context: Any) -> Dict[str, Any]:
+#         """Async wrapper for async functions."""
+#         # This will be handled by AsyncNode
+#         return func(inputs, **context)
     
-    if is_async:
-        return AsyncNode(
-            node_id=node_id,
-            executor=async_node_executor,
-            **kwargs
-        )
-    else:
-        return Node(
-            node_id=node_id,
-            executor=node_executor,
-            **kwargs
-        )
+#     if is_async:
+#         return AsyncNode(
+#             node_id=node_id,
+#             executor=async_node_executor,
+#             **kwargs
+#         )
+#     else:
+#         return Node(
+#             node_id=node_id,
+#             executor=node_executor,
+#             **kwargs
+#         )
 
 
 class PythonFunctionNode:
@@ -69,8 +70,8 @@ class PythonFunctionNode:
         self.node_id = node_id or func.__name__
     
     def to_node(self) -> Node:
-        """Convert to workflow Node."""
-        return create_node(self.node_id, self.func)
+        """Convert to workflow BaseNode."""
+        return create_function_node(self.node_id, self.func)
     
     def __call__(self, *args, **kwargs) -> Any:
         """Allow direct function calls."""
@@ -87,9 +88,9 @@ class AsyncPythonFunctionNode:
         self.func = func
         self.node_id = node_id or func.__name__
     
-    def to_node(self) -> AsyncNode:
-        """Convert to workflow AsyncNode."""
-        return create_node(self.node_id, self.func, is_async=True)
+    def to_node(self) -> Node:
+        """Convert to workflow BaseNode."""
+        return create_function_node(self.node_id, self.func)
     
     async def __call__(self, *args, **kwargs) -> Any:
         """Allow direct async function calls."""
@@ -102,15 +103,15 @@ class AsyncPythonFunctionNode:
 # Decorators for easy node creation
 def node(node_id: Optional[str] = None):
     """Decorator to create a Python function node."""
-    def decorator(func: Callable[..., Any]) -> PythonFunctionNode:
-        return PythonFunctionNode(func, node_id)
+    def decorator(func: Callable[..., Any]) -> Node:
+        return create_function_node(node_id or func.__name__, func)
     return decorator
 
 
 def async_node(node_id: Optional[str] = None):
     """Decorator to create an async Python function node."""
-    def decorator(func: Callable[..., Any]) -> AsyncPythonFunctionNode:
-        return AsyncPythonFunctionNode(func, node_id)
+    def decorator(func: Callable[..., Any]) -> Node:
+        return create_function_node(node_id or func.__name__, func)
     return decorator
 
 

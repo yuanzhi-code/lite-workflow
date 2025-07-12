@@ -4,6 +4,7 @@ Node definitions for workflow computation units.
 
 from __future__ import annotations
 
+import asyncio
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any, Dict, Callable, Optional, Protocol
@@ -31,7 +32,7 @@ class NodeConfig:
     metadata: Dict[str, Any] = field(default_factory=dict)
 
 
-class BaseNode(ABC):
+class Node(ABC):
     """Abstract base class for all workflow nodes."""
     
     def __init__(
@@ -53,17 +54,12 @@ class BaseNode(ABC):
             raise ValueError("Executor must be callable")
     
     async def execute_async(self, inputs: Dict[str, Any], **context: Any) -> Dict[str, Any]:
-        """Execute node asynchronously."""
-        return await self._execute_with_context(inputs, **context)
-    
-    def execute(self, inputs: Dict[str, Any], **context: Any) -> Dict[str, Any]:
-        """Execute node synchronously."""
-        return self._execute_with_context(inputs, **context)
-    
-    def _execute_with_context(self, inputs: Dict[str, Any], **context: Any) -> Dict[str, Any]:
-        """Execute node with proper context handling."""
+        """Execute node asynchronously, handling both async and sync executors."""
         try:
-            return self.executor(inputs, **context)
+            if asyncio.iscoroutinefunction(self.executor):
+                return await self.executor(inputs, **context)
+            else:
+                return await asyncio.to_thread(self.executor, inputs, **context)
         except Exception as e:
             raise NodeExecutionError(
                 f"Node {self.node_id} execution failed: {str(e)}"
@@ -71,28 +67,6 @@ class BaseNode(ABC):
     
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}(id='{self.node_id}')"
-
-
-class Node(BaseNode):
-    """Standard workflow node with synchronous execution."""
-    pass
-
-
-class AsyncNode(BaseNode):
-    """Asynchronous workflow node."""
-    
-    async def execute_async(self, inputs: Dict[str, Any], **context: Any) -> Dict[str, Any]:
-        """Execute node asynchronously."""
-        try:
-            if hasattr(self.executor, '__call__'):
-                import asyncio
-                if asyncio.iscoroutinefunction(self.executor):
-                    return await self.executor(inputs, **context)
-            return self.executor(inputs, **context)
-        except Exception as e:
-            raise NodeExecutionError(
-                f"Async node {self.node_id} execution failed: {str(e)}"
-            ) from e
 
 
 class NodeExecutionError(Exception):
@@ -106,14 +80,5 @@ def create_function_node(
     func: Callable[..., Dict[str, Any]],
     config: Optional[NodeConfig] = None
 ) -> Node:
-    """Create a node from a Python function."""
+    """Create a node from a Python function (sync or async)."""
     return Node(node_id=node_id, executor=func, config=config)
-
-
-def create_async_function_node(
-    node_id: NodeId,
-    func: Callable[..., Dict[str, Any]],
-    config: Optional[NodeConfig] = None
-) -> AsyncNode:
-    """Create an async node from a Python function."""
-    return AsyncNode(node_id=node_id, executor=func, config=config)

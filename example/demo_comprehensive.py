@@ -10,15 +10,15 @@ This demo showcases all advanced graph patterns:
 5. State management across supersteps
 """
 
+import sys
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'src')))
+
 import asyncio
 import time
 from typing import Any, Dict, List
 
 # Import from our new architecture
-import sys
-import os
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'src'))
-
 from lite_workflow.definitions.graph import Graph
 from lite_workflow.definitions.node import Node, create_function_node
 from lite_workflow.definitions.edge import Edge, when, condition

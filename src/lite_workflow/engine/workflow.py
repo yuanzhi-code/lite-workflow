@@ -4,13 +4,14 @@ High-level workflow interface for easy usage.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Callable
+import asyncio
+from typing import Any, Dict, List, Optional, Set, Callable
 from dataclasses import dataclass
 
-from ..definitions.graph import Graph, GraphConfig
-from ..definitions.node import Node, create_function_node
-from ..definitions.edge import Edge
-from ..definitions.state import State, InMemoryState
+from ..definitions.graph import Graph, GraphConfig, NodeId
+from ..definitions.node import Node, create_function_node # Corrected import for BaseNode
+from ..definitions.edge import Edge, EdgeCondition, when, condition
+from ..definitions.state import State, InMemoryState, UpdateStrategy
 from ..core.state_manager import StateManager
 from ..core.error_handler import ErrorHandler
 from .pregel_engine import PregelEngine
@@ -110,7 +111,7 @@ class Workflow:
             
         except Exception as e:
             return WorkflowResult(
-                final_state=State({}),
+                final_state=InMemoryState({}), # Changed State to InMemoryState
                 execution_stats={},
                 success=False,
                 error=str(e)

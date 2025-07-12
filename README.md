@@ -117,7 +117,7 @@ print(result.final_state["result"])
 ### 高级图编排
 
 ```python
-from lite_workflow.definitions import Node, Edge, Graph
+from lite_workflow.definitions import , Edge, Graph
 from lite_workflow.engine import PregelEngine
 
 # 创建节点
