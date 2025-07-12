@@ -47,6 +47,7 @@ class State(ABC):
 
 class UpdateStrategy(Enum):
     """Strategies for updating state."""
+
     OVERWRITE = "overwrite"
     MERGE = "merge"
     IGNORE = "ignore"

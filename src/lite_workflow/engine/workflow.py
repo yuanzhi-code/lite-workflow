@@ -41,10 +41,7 @@ class Workflow:
         self._start_node: str | None = None
 
     def add_node(
-        self,
-        node_id: str,
-        func: Callable[..., dict[str, Any]],
-        **kwargs: Any
+        self, node_id: str, func: Callable[..., dict[str, Any]], **kwargs: Any
     ) -> Workflow:
         """Add a function node to the workflow."""
         node = create_function_node(node_id, func)
@@ -55,12 +52,7 @@ class Workflow:
 
         return self
 
-    def add_edge(
-        self,
-        source: str,
-        target: str,
-        **kwargs: Any
-    ) -> Workflow:
+    def add_edge(self, source: str, target: str, **kwargs: Any) -> Workflow:
         """Add an edge between nodes."""
         edge = Edge(source_id=source, target_id=target, **kwargs)
         self.edges.append(edge)
@@ -86,7 +78,7 @@ class Workflow:
             graph_id=self.name,
             nodes=self.nodes,
             edges=self.edges,
-            start_node=self._start_node
+            start_node=self._start_node,
         )
 
     def run(self, **kwargs: Any) -> WorkflowResult:
@@ -103,9 +95,7 @@ class Workflow:
             stats = engine.get_execution_stats()
 
             return WorkflowResult(
-                final_state=final_state,
-                execution_stats=stats,
-                success=True
+                final_state=final_state, execution_stats=stats, success=True
             )
 
         except Exception as e:
@@ -113,7 +103,7 @@ class Workflow:
                 final_state=InMemoryState({}),
                 execution_stats={},
                 success=False,
-                error=str(e)
+                error=str(e),
             )
 
     def __repr__(self) -> str:
